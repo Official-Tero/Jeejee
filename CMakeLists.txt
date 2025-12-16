@@ -17,7 +17,7 @@ juce_add_plugin(AuDemo
     COPY_PLUGIN_AFTER_BUILD TRUE
     PLUGIN_MANUFACTURER_CODE Tero
     PLUGIN_CODE La2t
-    FORMATS AU
+    FORMATS AU VST3 Standalone
     PRODUCT_NAME "LA2ATero"
 )
 
