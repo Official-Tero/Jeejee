@@ -41,6 +41,10 @@ public:
     float getGainReductionDb() const { return compressor.getGainReductionDb(); }
     float getOutputLevel() const { return compressor.getOutputLevel(); }
 
+    // Debug info
+    int getDebugInputChannels() const { return debugInputChannels.load(); }
+    float getDebugInputLevel() const { return debugInputLevel.load(); }
+
 private:
     juce::AudioProcessorValueTreeState apvts;
     OptoCompressor compressor;
@@ -49,7 +53,12 @@ private:
     std::atomic<float>* peakReductionParam = nullptr;
     std::atomic<float>* gainParam = nullptr;
     std::atomic<float>* limitModeParam = nullptr;
+    std::atomic<float>* compModeParam = nullptr;
     std::atomic<float>* mixParam = nullptr;
+
+    // Debug
+    std::atomic<int> debugInputChannels{0};
+    std::atomic<float> debugInputLevel{0.0f};
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 

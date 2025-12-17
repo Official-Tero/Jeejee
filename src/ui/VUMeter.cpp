@@ -29,18 +29,17 @@ void VUMeter::setMode(Mode newMode)
 void VUMeter::timerCallback()
 {
     currentLevel = smoothingCoeff * currentLevel + (1.0f - smoothingCoeff) * targetLevel;
-    needleAngle = levelToAngle(currentLevel);
     repaint();
 }
 
 float VUMeter::levelToAngle(float dB)
 {
+    // Not used in Dorrough style, but keep for compatibility
     float displayDb = dB;
     if (mode == Mode::GainReduction)
     {
         displayDb = -dB;
     }
-
     displayDb = juce::jlimit(MIN_DB, MAX_DB, displayDb);
     float normalized = (displayDb - MIN_DB) / (MAX_DB - MIN_DB);
     return -45.0f + normalized * 90.0f;
@@ -50,127 +49,209 @@ void VUMeter::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat().reduced(2.0f);
 
-    drawMeterFace(g, bounds);
-    drawScale(g, bounds);
-    drawNeedle(g, bounds, needleAngle);
+    // Dark background
+    g.setColour(juce::Colour(0xFF0A0A0A));
+    g.fillRoundedRectangle(bounds, 6.0f);
+
+    // Inner dark area
+    auto innerBounds = bounds.reduced(3.0f);
+    g.setColour(juce::Colour(0xFF151515));
+    g.fillRoundedRectangle(innerBounds, 4.0f);
+
+    drawDorroughMeter(g, innerBounds);
 }
 
 void VUMeter::drawMeterFace(juce::Graphics& g, juce::Rectangle<float> bounds)
 {
-    // Outer bezel - dark blue/gray like the reference
-    g.setColour(LA2ALookAndFeel::METER_BEZEL);
-    g.fillRoundedRectangle(bounds, 4.0f);
-
-    // Inner bezel shadow
-    auto innerBezel = bounds.reduced(4.0f);
-    g.setColour(juce::Colour(0xFF3A4555));
-    g.fillRoundedRectangle(innerBezel, 3.0f);
-
-    // Meter face - cream/yellow gradient like the reference
-    auto faceBounds = innerBezel.reduced(4.0f);
-    juce::ColourGradient faceGradient(
-        juce::Colour(0xFFFAF0D8), faceBounds.getX(), faceBounds.getY(),
-        juce::Colour(0xFFE8D8B0), faceBounds.getX(), faceBounds.getBottom(), false);
-    g.setGradientFill(faceGradient);
-    g.fillRoundedRectangle(faceBounds, 2.0f);
-
-    // "VU LEVEL INDICATOR" text at top
-    g.setColour(juce::Colour(0xFF8B0000));
-    g.setFont(8.0f);
-    g.drawText("VU LEVEL INDICATOR", faceBounds.removeFromTop(14), juce::Justification::centred);
-
-    // "TELETRONIX" branding in meter
-    g.setColour(LA2ALookAndFeel::TELETRONIX_RED);
-    g.setFont(juce::Font(10.0f, juce::Font::italic | juce::Font::bold));
-    auto brandArea = bounds.withHeight(20.0f).withY(bounds.getBottom() - 35.0f);
-    g.drawText("TELETRONIX", brandArea, juce::Justification::centred);
+    // Not used in Dorrough style
+    (void)g;
+    (void)bounds;
 }
 
 void VUMeter::drawScale(juce::Graphics& g, juce::Rectangle<float> bounds)
 {
-    auto centerX = bounds.getCentreX();
-    auto arcRadius = bounds.getWidth() * 0.38f;
-    auto arcCenterY = bounds.getBottom() - bounds.getHeight() * 0.25f;
-
-    // VU scale markings
-    struct ScaleMark { float dB; const char* label; bool major; bool red; };
-    std::vector<ScaleMark> marks = {
-        {-20.0f, "-20", true, false},
-        {-10.0f, "-10", true, false},
-        {-7.0f, "-7", false, false},
-        {-5.0f, "-5", false, false},
-        {-3.0f, "-3", false, false},
-        {-2.0f, "-2", false, false},
-        {-1.0f, "-1", false, false},
-        {0.0f, "0", true, false},
-        {1.0f, "+1", false, true},
-        {2.0f, "+2", false, true},
-        {3.0f, "+3", true, true}
-    };
-
-    g.setFont(9.0f);
-
-    for (const auto& mark : marks)
-    {
-        float angle = levelToAngle(mark.dB);
-        float radians = juce::degreesToRadians(angle - 90.0f);
-
-        float tickInner = arcRadius - (mark.major ? 12.0f : 8.0f);
-        float tickOuter = arcRadius - 2.0f;
-
-        float x1 = centerX + tickInner * std::cos(radians);
-        float y1 = arcCenterY + tickInner * std::sin(radians);
-        float x2 = centerX + tickOuter * std::cos(radians);
-        float y2 = arcCenterY + tickOuter * std::sin(radians);
-
-        g.setColour(mark.red ? juce::Colour(0xFFCC0000) : juce::Colour(0xFF333333));
-        g.drawLine(x1, y1, x2, y2, mark.major ? 1.5f : 1.0f);
-
-        // Labels for major marks
-        if (mark.major)
-        {
-            float labelRadius = arcRadius - 20.0f;
-            float lx = centerX + labelRadius * std::cos(radians);
-            float ly = arcCenterY + labelRadius * std::sin(radians);
-
-            g.drawText(mark.label,
-                      static_cast<int>(lx - 12), static_cast<int>(ly - 6), 24, 12,
-                      juce::Justification::centred);
-        }
-    }
-
-    // "VU" labels on sides
-    g.setColour(juce::Colour(0xFF333333));
-    g.setFont(juce::Font(11.0f, juce::Font::bold));
-    g.drawText("VU", static_cast<int>(centerX - arcRadius - 5), static_cast<int>(arcCenterY - 8), 20, 16,
-              juce::Justification::centred);
-    g.drawText("VU", static_cast<int>(centerX + arcRadius - 15), static_cast<int>(arcCenterY - 8), 20, 16,
-              juce::Justification::centred);
+    // Not used in Dorrough style
+    (void)g;
+    (void)bounds;
 }
 
 void VUMeter::drawNeedle(juce::Graphics& g, juce::Rectangle<float> bounds, float angle)
 {
+    // Not used in Dorrough style
+    (void)g;
+    (void)bounds;
+    (void)angle;
+}
+
+void VUMeter::drawDorroughMeter(juce::Graphics& g, juce::Rectangle<float> bounds)
+{
     auto centerX = bounds.getCentreX();
-    auto arcCenterY = bounds.getBottom() - bounds.getHeight() * 0.25f;
-    auto needleLength = bounds.getWidth() * 0.35f;
 
-    float radians = juce::degreesToRadians(angle - 90.0f);
+    // Calculate radius based on width to ensure it fits horizontally
+    // The arc spans from startAngle to endAngle, so we need to account for that
+    constexpr float startAngle = -55.0f;  // degrees from top
+    constexpr float endAngle = 55.0f;
 
-    // Needle shadow
-    g.setColour(juce::Colour(0x30000000));
-    float shadowX = centerX + 2.0f + needleLength * std::cos(radians);
-    float shadowY = arcCenterY + 2.0f + needleLength * std::sin(radians);
-    g.drawLine(centerX + 2.0f, arcCenterY + 2.0f, shadowX, shadowY, 1.5f);
+    // Calculate max radius that fits in width (considering the angle spread)
+    // Use smaller multiplier to leave more black space on sides
+    float maxAngleRad = juce::degreesToRadians(std::max(std::abs(startAngle), std::abs(endAngle)));
+    float maxRadiusForWidth = (bounds.getWidth() * 0.38f) / std::sin(maxAngleRad);
+    float maxRadiusForHeight = bounds.getHeight() * 1.1f;
 
-    // Needle - red/dark color
-    g.setColour(juce::Colour(0xFF8B0000));
-    float tipX = centerX + needleLength * std::cos(radians);
-    float tipY = arcCenterY + needleLength * std::sin(radians);
-    g.drawLine(centerX, arcCenterY, tipX, tipY, 1.5f);
+    float arcRadius = std::min(maxRadiusForWidth, maxRadiusForHeight);
+    float segmentHeight = bounds.getHeight() * 0.16f;
 
-    // Needle pivot
-    g.setColour(juce::Colour(0xFF333333));
-    g.fillEllipse(centerX - 4.0f, arcCenterY - 4.0f, 8.0f, 8.0f);
+    // Position pivot so arc fits vertically
+    auto centerY = bounds.getBottom() + arcRadius - bounds.getHeight() + segmentHeight;
+
+    // Dorrough scale: -25 to +14 dB (40 segments)
+    constexpr int numSegments = 41;
+    constexpr float minDb = -25.0f;
+    constexpr float maxDb = 14.0f;
+
+    // Get current level for display
+    float displayLevel = currentLevel;
+    if (mode == Mode::GainReduction)
+    {
+        displayLevel = -currentLevel;  // Invert for GR display
+    }
+
+    // dB values for labels
+    struct DbLabel { float dB; const char* label; };
+    std::vector<DbLabel> labels = {
+        {-25.0f, "-25"}, {-22.0f, "-22"}, {-20.0f, "-20"}, {-18.0f, "-18"},
+        {-16.0f, "-16"}, {-14.0f, "-14"}, {-12.0f, "-12"}, {-10.0f, "-10"},
+        {-8.0f, "-8"}, {-6.0f, "-6"}, {-4.0f, "-4"}, {-2.0f, "-2"},
+        {0.0f, "0"}, {2.0f, "+2"}, {4.0f, "+4"}, {6.0f, "+6"},
+        {8.0f, "+8"}, {10.0f, "+10"}, {12.0f, "+12"}, {14.0f, "+14"}
+    };
+
+    // Draw LED segments
+    for (int i = 0; i < numSegments; ++i)
+    {
+        float segmentDb = minDb + (static_cast<float>(i) / (numSegments - 1)) * (maxDb - minDb);
+        float normalizedPos = static_cast<float>(i) / (numSegments - 1);
+        float angle = startAngle + normalizedPos * (endAngle - startAngle);
+        float radians = juce::degreesToRadians(angle - 90.0f);
+
+        // Segment position on arc
+        float segX = centerX + arcRadius * std::cos(radians);
+        float segY = centerY + arcRadius * std::sin(radians);
+
+        // Determine segment color based on position
+        juce::Colour segmentColor;
+        juce::Colour dimColor;
+
+        if (segmentDb < -10.0f)
+        {
+            // Green zone
+            segmentColor = juce::Colour(0xFF00DD00);
+            dimColor = juce::Colour(0xFF0A3A0A);
+        }
+        else if (segmentDb < 0.0f)
+        {
+            // Yellow/orange transition zone
+            float t = (segmentDb + 10.0f) / 10.0f;
+            segmentColor = juce::Colour(0xFF00DD00).interpolatedWith(juce::Colour(0xFFFFAA00), t);
+            dimColor = juce::Colour(0xFF0A3A0A).interpolatedWith(juce::Colour(0xFF3A2A0A), t);
+        }
+        else if (segmentDb < 6.0f)
+        {
+            // Red zone
+            segmentColor = juce::Colour(0xFFFF3300);
+            dimColor = juce::Colour(0xFF3A0A0A);
+        }
+        else
+        {
+            // High red/yellow zone
+            float t = (segmentDb - 6.0f) / 8.0f;
+            segmentColor = juce::Colour(0xFFFF3300).interpolatedWith(juce::Colour(0xFFFFCC00), t);
+            dimColor = juce::Colour(0xFF3A0A0A).interpolatedWith(juce::Colour(0xFF3A3A0A), t);
+        }
+
+        // Check if segment should be lit
+        bool isLit = displayLevel >= segmentDb;
+
+        // Draw segment (rotated rectangle)
+        juce::Path segment;
+        float segWidth = (bounds.getWidth() * 0.8f) / numSegments * 0.7f;
+
+        segment.addRoundedRectangle(-segWidth / 2.0f, -segmentHeight / 2.0f,
+                                     segWidth, segmentHeight, 1.5f);
+
+        g.saveState();
+        g.addTransform(juce::AffineTransform::rotation(radians + juce::MathConstants<float>::halfPi)
+                                             .translated(segX, segY));
+
+        if (isLit)
+        {
+            // Glow effect for lit segments
+            g.setColour(segmentColor.withAlpha(0.3f));
+            g.fillRoundedRectangle(-segWidth / 2.0f - 2.0f, -segmentHeight / 2.0f - 2.0f,
+                                   segWidth + 4.0f, segmentHeight + 4.0f, 2.5f);
+
+            g.setColour(segmentColor);
+        }
+        else
+        {
+            g.setColour(dimColor);
+        }
+        g.fillPath(segment);
+
+        // Segment highlight for lit segments
+        if (isLit)
+        {
+            g.setColour(segmentColor.brighter(0.3f));
+            g.fillRoundedRectangle(-segWidth / 2.0f + 1.0f, -segmentHeight / 2.0f + 1.0f,
+                                   segWidth - 2.0f, segmentHeight * 0.3f, 1.0f);
+        }
+
+        g.restoreState();
+    }
+
+    // Draw dB labels (above the segments, inside the visible area)
+    g.setFont(7.0f);
+    for (const auto& label : labels)
+    {
+        float normalizedPos = (label.dB - minDb) / (maxDb - minDb);
+        float angle = startAngle + normalizedPos * (endAngle - startAngle);
+        float radians = juce::degreesToRadians(angle - 90.0f);
+
+        // Labels positioned closer to segments
+        float labelRadius = arcRadius - segmentHeight * 0.5f - 10.0f;
+        float lx = centerX + labelRadius * std::cos(radians);
+        float ly = centerY + labelRadius * std::sin(radians);
+
+        // Color based on zone
+        if (label.dB < 0.0f)
+            g.setColour(juce::Colour(0xFFAAAA00));  // Yellow for negative dB
+        else
+            g.setColour(juce::Colour(0xFFFF6600));  // Orange for positive dB
+
+        g.drawText(label.label,
+                  static_cast<int>(lx - 14), static_cast<int>(ly - 5), 28, 10,
+                  juce::Justification::centred);
+    }
+
+    // "dB" labels on sides (at the arc level)
+    float dbLabelRadius = arcRadius - segmentHeight * 0.5f;
+    float leftAngle = juce::degreesToRadians(startAngle - 90.0f);
+    float rightAngle = juce::degreesToRadians(endAngle - 90.0f);
+
+    g.setColour(juce::Colour(0xFFAAAA00));
+    g.setFont(9.0f);
+    g.drawText("dB", static_cast<int>(centerX + dbLabelRadius * std::cos(leftAngle) - 18),
+               static_cast<int>(centerY + dbLabelRadius * std::sin(leftAngle) - 5), 16, 10,
+               juce::Justification::centred);
+    g.drawText("dB", static_cast<int>(centerX + dbLabelRadius * std::cos(rightAngle) + 2),
+               static_cast<int>(centerY + dbLabelRadius * std::sin(rightAngle) - 5), 16, 10,
+               juce::Justification::centred);
+
+    // Mode indicator
+    g.setFont(9.0f);
+    g.setColour(juce::Colour(0xFF888888));
+    const char* modeText = (mode == Mode::GainReduction) ? "GR" : "OUT";
+    g.drawText(modeText, bounds.toNearestInt(), juce::Justification::centredBottom);
 }
 
 void VUMeter::resized()

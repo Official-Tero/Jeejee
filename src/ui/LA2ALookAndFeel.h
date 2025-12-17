@@ -31,7 +31,12 @@ public:
                          float sliderPosProportional, float rotaryStartAngle,
                          float rotaryEndAngle, juce::Slider& slider) override;
 
-    // Toggle button (vintage switch)
+    // Linear slider (horizontal fader)
+    void drawLinearSlider(juce::Graphics& g, int x, int y, int width, int height,
+                         float sliderPos, float minSliderPos, float maxSliderPos,
+                         juce::Slider::SliderStyle style, juce::Slider& slider) override;
+
+    // Toggle button (illuminated mode button)
     void drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
                          bool shouldDrawButtonAsHighlighted,
                          bool shouldDrawButtonAsDown) override;
@@ -42,6 +47,8 @@ public:
     juce::Font getLabelFont(juce::Label& label) override;
 
 private:
+    void drawDialKnob(juce::Graphics& g, float centerX, float centerY,
+                      float radius, float angle, float sliderPos);
     void drawBakeliteKnob(juce::Graphics& g, float centerX, float centerY,
                           float radius, float angle);
 

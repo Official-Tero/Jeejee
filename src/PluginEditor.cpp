@@ -5,18 +5,24 @@ AuDemoEditor::AuDemoEditor(AuDemoProcessor& p)
 {
     setLookAndFeel(&la2aLookAndFeel);
 
-    // Title - TELETRONIX branding
-    titleLabel.setText("TELETRONIX", juce::dontSendNotification);
-    titleLabel.setFont(juce::Font(18.0f, juce::Font::italic | juce::Font::bold));
-    titleLabel.setJustificationType(juce::Justification::centredLeft);
+    // Title - TELETERONIX branding
+    titleLabel.setText("TELETERONIX", juce::dontSendNotification);
+    titleLabel.setFont(juce::Font(juce::FontOptions(24.0f).withStyle("Bold Italic")));
+    titleLabel.setJustificationType(juce::Justification::centred);
     titleLabel.setColour(juce::Label::textColourId, LA2ALookAndFeel::TELETRONIX_RED);
     addAndMakeVisible(titleLabel);
 
-    subtitleLabel.setText("LEVELING AMPLIFIER", juce::dontSendNotification);
-    subtitleLabel.setFont(juce::Font(8.0f));
-    subtitleLabel.setJustificationType(juce::Justification::centredLeft);
+    subtitleLabel.setText("JEEJEEING AMPLIFIER", juce::dontSendNotification);
+    subtitleLabel.setFont(juce::Font(juce::FontOptions(11.0f)));
+    subtitleLabel.setJustificationType(juce::Justification::centred);
     subtitleLabel.setColour(juce::Label::textColourId, LA2ALookAndFeel::TEXT_DARK);
     addAndMakeVisible(subtitleLabel);
+
+    // DEBUG label
+    debugLabel.setFont(juce::Font(juce::FontOptions(10.0f)));
+    debugLabel.setJustificationType(juce::Justification::centredLeft);
+    debugLabel.setColour(juce::Label::textColourId, juce::Colours::red);
+    addAndMakeVisible(debugLabel);
 
     // VU Meter
     addAndMakeVisible(vuMeter);
@@ -62,21 +68,28 @@ AuDemoEditor::AuDemoEditor(AuDemoProcessor& p)
     peakReductionLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(peakReductionLabel);
 
-    // Mix knob - smaller, far right
-    mixSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    // Mix fader - horizontal, below meter
+    mixSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     mixSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    mixSlider.setRotaryParameters(juce::MathConstants<float>::pi * 0.75f,
-                                  juce::MathConstants<float>::pi * 2.25f, true);
     addAndMakeVisible(mixSlider);
 
-    mixLabel.setText("MIX", juce::dontSendNotification);
-    mixLabel.setFont(juce::Font(8.0f, juce::Font::bold));
-    mixLabel.setJustificationType(juce::Justification::centred);
+    mixLabel.setText("DRY", juce::dontSendNotification);
+    mixLabel.setFont(juce::Font(juce::FontOptions(8.0f).withStyle("Bold")));
+    mixLabel.setJustificationType(juce::Justification::centredRight);
     addAndMakeVisible(mixLabel);
 
-    // Limit/Compress switch - far left
-    limitModeSwitch.setButtonText("");
-    addAndMakeVisible(limitModeSwitch);
+    mixLabelWet.setText("WET", juce::dontSendNotification);
+    mixLabelWet.setFont(juce::Font(juce::FontOptions(8.0f).withStyle("Bold")));
+    mixLabelWet.setJustificationType(juce::Justification::centredLeft);
+    addAndMakeVisible(mixLabelWet);
+
+    // LIMIT button - below Peak Reduction
+    limitButton.setButtonText("LIMIT");
+    addAndMakeVisible(limitButton);
+
+    // COMP button - below Gain
+    compButton.setButtonText("COMP");
+    addAndMakeVisible(compButton);
 
     // Parameter attachments
     peakReductionAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
@@ -86,7 +99,9 @@ AuDemoEditor::AuDemoEditor(AuDemoProcessor& p)
     mixAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
         processorRef.getApvts(), "mix", mixSlider);
     limitModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-        processorRef.getApvts(), "limitMode", limitModeSwitch);
+        processorRef.getApvts(), "limitMode", limitButton);
+    compModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        processorRef.getApvts(), "compMode", compButton);
 
     startTimerHz(30);
 
@@ -102,10 +117,18 @@ AuDemoEditor::~AuDemoEditor()
 
 void AuDemoEditor::timerCallback()
 {
+    float gr = processorRef.getGainReductionDb();
+    float out = processorRef.getOutputLevel();
+
     if (vuMeter.getMode() == VUMeter::Mode::GainReduction)
-        vuMeter.setLevel(processorRef.getGainReductionDb());
+        vuMeter.setLevel(gr);
     else
-        vuMeter.setLevel(processorRef.getOutputLevel());
+        vuMeter.setLevel(out);
+
+    // DEBUG: Show input and metering values
+    float inLevel = processorRef.getDebugInputLevel();
+    debugLabel.setText("IN: " + juce::String(inLevel, 3) + " | GR: " + juce::String(gr, 1) + " | OUT: " + juce::String(out, 1),
+                       juce::dontSendNotification);
 }
 
 void AuDemoEditor::paint(juce::Graphics& g)
@@ -223,50 +246,65 @@ void AuDemoEditor::resized()
     float earWidth = 25.0f;
     auto faceplate = bounds.toFloat().reduced(earWidth, 0.0f);
 
-    // Title area - top left
-    titleLabel.setBounds(static_cast<int>(faceplate.getX() + 40), 15, 140, 22);
-    subtitleLabel.setBounds(static_cast<int>(faceplate.getX() + 40), 35, 140, 14);
+    // Title area - centered
+    titleLabel.setBounds(static_cast<int>(faceplate.getX()), 6, static_cast<int>(faceplate.getWidth()), 28);
+    subtitleLabel.setBounds(static_cast<int>(faceplate.getX()), 32, static_cast<int>(faceplate.getWidth()), 16);
 
-    // Layout: Switch | Gain | VU Meter | Peak Reduction | Mix/Mode
-    float contentY = 60.0f;
-    float contentHeight = bounds.getHeight() - 80.0f;
+    // DEBUG label - bottom left
+    debugLabel.setBounds(static_cast<int>(faceplate.getX()) + 10, bounds.getHeight() - 20, 200, 16);
 
-    // Limit/Compress switch - far left
-    limitModeSwitch.setBounds(static_cast<int>(faceplate.getX() + 35),
-                               static_cast<int>(contentY + 20), 50, 100);
-
-    // Gain knob - left of center
-    int gainKnobSize = 120;
-    int gainX = static_cast<int>(faceplate.getX() + 120);
-    int gainY = static_cast<int>(contentY + (contentHeight - gainKnobSize) / 2);
-    gainSlider.setBounds(gainX, gainY, gainKnobSize, gainKnobSize);
-    gainLabel.setBounds(gainX, gainY + gainKnobSize - 5, gainKnobSize, 20);
-    gainKnobCenter = {gainX + gainKnobSize / 2.0f, gainY + gainKnobSize / 2.0f};
-    gainKnobRadius = gainKnobSize / 2.0f - 10.0f;
-
-    // VU Meter - center
+    // VU Meter - center (define first to use for knob positioning)
     int meterWidth = 180;
     int meterHeight = 120;
     int meterX = static_cast<int>(faceplate.getCentreX() - meterWidth / 2);
-    int meterY = static_cast<int>(contentY + (contentHeight - meterHeight) / 2 - 10);
+    int meterY = static_cast<int>((bounds.getHeight() - meterHeight) / 2);
     vuMeter.setBounds(meterX, meterY, meterWidth, meterHeight);
 
     // Meter mode button
     meterModeButton.setBounds(meterX + meterWidth / 2 - 20, meterY + meterHeight + 5, 40, 18);
 
-    // Peak Reduction knob - right of center
-    int prKnobSize = 120;
-    int prX = static_cast<int>(faceplate.getRight() - 280);
-    int prY = static_cast<int>(contentY + (contentHeight - prKnobSize) / 2);
+    // Gain knob - centered between left faceplate edge and meter left edge
+    int gainKnobSize = 100;
+    float leftAreaStart = faceplate.getX();
+    float leftAreaEnd = static_cast<float>(meterX);
+    float gainCenterX = (leftAreaStart + leftAreaEnd) / 2.0f;
+    float gainCenterY = bounds.getHeight() / 2.0f;
+    int gainX = static_cast<int>(gainCenterX - gainKnobSize / 2.0f);
+    int gainY = static_cast<int>(gainCenterY - gainKnobSize / 2.0f);
+    gainSlider.setBounds(gainX, gainY, gainKnobSize, gainKnobSize);
+    gainLabel.setBounds(gainX, gainY + gainKnobSize - 5, gainKnobSize, 20);
+    gainKnobCenter = {gainCenterX, gainCenterY};
+    gainKnobRadius = gainKnobSize / 2.0f - 10.0f;
+
+    // Peak Reduction knob - centered between meter right edge and right faceplate edge
+    int prKnobSize = 100;
+    float rightAreaStart = static_cast<float>(meterX + meterWidth);
+    float rightAreaEnd = faceplate.getRight();
+    float prCenterX = (rightAreaStart + rightAreaEnd) / 2.0f;
+    float prCenterY = bounds.getHeight() / 2.0f;
+    int prX = static_cast<int>(prCenterX - prKnobSize / 2.0f);
+    int prY = static_cast<int>(prCenterY - prKnobSize / 2.0f);
     peakReductionSlider.setBounds(prX, prY, prKnobSize, prKnobSize);
     peakReductionLabel.setBounds(prX - 10, prY + prKnobSize - 5, prKnobSize + 20, 20);
-    peakReductionKnobCenter = {prX + prKnobSize / 2.0f, prY + prKnobSize / 2.0f};
+    peakReductionKnobCenter = {prCenterX, prCenterY};
     peakReductionKnobRadius = prKnobSize / 2.0f - 10.0f;
 
-    // Mix knob - far right, smaller
-    int mixKnobSize = 60;
-    int mixX = static_cast<int>(faceplate.getRight() - 100);
-    int mixY = static_cast<int>(contentY + 20);
-    mixSlider.setBounds(mixX, mixY, mixKnobSize, mixKnobSize);
-    mixLabel.setBounds(mixX, mixY + mixKnobSize, mixKnobSize, 16);
+    // COMP button - below Gain knob (with space for label)
+    int buttonWidth = 60;
+    int buttonHeight = 24;
+    compButton.setBounds(static_cast<int>(gainCenterX - buttonWidth / 2),
+                         gainY + gainKnobSize + 20, buttonWidth, buttonHeight);
+
+    // LIMIT button - below Peak Reduction knob (with space for label)
+    limitButton.setBounds(static_cast<int>(prCenterX - buttonWidth / 2),
+                          prY + prKnobSize + 20, buttonWidth, buttonHeight);
+
+    // Mix fader - horizontal, below the meter
+    int mixFaderWidth = 120;
+    int mixFaderHeight = 20;
+    int mixX = meterX + (meterWidth - mixFaderWidth) / 2;
+    int mixY = meterY + meterHeight + 25;
+    mixSlider.setBounds(mixX, mixY, mixFaderWidth, mixFaderHeight);
+    mixLabel.setBounds(mixX - 32, mixY, 30, mixFaderHeight);
+    mixLabelWet.setBounds(mixX + mixFaderWidth + 2, mixY, 30, mixFaderHeight);
 }

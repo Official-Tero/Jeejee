@@ -36,11 +36,14 @@ private:
     juce::Label peakReductionLabel;
     juce::Label gainLabel;
     juce::Label mixLabel;
+    juce::Label mixLabelWet;
     juce::Label titleLabel;
     juce::Label subtitleLabel;
+    juce::Label debugLabel;  // DEBUG
 
-    // Switch
-    juce::ToggleButton limitModeSwitch;
+    // Mode buttons
+    juce::ToggleButton limitButton;
+    juce::ToggleButton compButton;
 
     // Knob scale positions (for drawing)
     juce::Point<float> gainKnobCenter;
@@ -53,6 +56,7 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> gainAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> limitModeAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> compModeAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AuDemoEditor)
 };

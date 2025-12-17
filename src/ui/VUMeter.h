@@ -49,6 +49,7 @@ private:
     void drawMeterFace(juce::Graphics& g, juce::Rectangle<float> bounds);
     void drawNeedle(juce::Graphics& g, juce::Rectangle<float> bounds, float angle);
     void drawScale(juce::Graphics& g, juce::Rectangle<float> bounds);
+    void drawDorroughMeter(juce::Graphics& g, juce::Rectangle<float> bounds);
     float levelToAngle(float dB);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(VUMeter)

@@ -19,6 +19,8 @@ juce_add_plugin(AuDemo
     PLUGIN_CODE La2t
     FORMATS AU VST3 Standalone
     PRODUCT_NAME "LA2ATero"
+    MICROPHONE_PERMISSION_ENABLED TRUE
+    MICROPHONE_PERMISSION_TEXT "LA2ATero needs microphone access to process audio input."
 )
 
 target_sources(AuDemo
@@ -35,6 +37,10 @@ target_compile_definitions(AuDemo
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
+        JUCE_STANDALONE_FILTER_WINDOW_USE_KIOSK_MODE=0
+        JucePlugin_WantsMidiInput=0
+        JucePlugin_ProducesMidiOutput=0
+        JucePlugin_IsMidiEffect=0
 )
 
 target_link_libraries(AuDemo

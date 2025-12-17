@@ -11,7 +11,12 @@ AuDemoProcessor::AuDemoProcessor()
     peakReductionParam = apvts.getRawParameterValue("peakReduction");
     gainParam = apvts.getRawParameterValue("gain");
     limitModeParam = apvts.getRawParameterValue("limitMode");
+    compModeParam = apvts.getRawParameterValue("compMode");
     mixParam = apvts.getRawParameterValue("mix");
+
+    // Ensure input bus is enabled
+    if (auto* bus = getBus(true, 0))
+        bus->enable();
 }
 
 AuDemoProcessor::~AuDemoProcessor()
@@ -38,11 +43,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout AuDemoProcessor::createParam
         0.0f,
         juce::AudioParameterFloatAttributes().withLabel("dB")));
 
-    // Limit/Compress mode
+    // Limit mode button
     params.push_back(std::make_unique<juce::AudioParameterBool>(
         juce::ParameterID{"limitMode", 1},
         "Limit Mode",
         false));
+
+    // Comp mode button
+    params.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{"compMode", 1},
+        "Comp Mode",
+        true));  // Default to comp mode on
 
     // Mix (0-100%)
     params.push_back(std::make_unique<juce::AudioParameterFloat>(
@@ -79,6 +90,21 @@ void AuDemoProcessor::changeProgramName(int, const juce::String&) {}
 void AuDemoProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
     compressor.prepare(sampleRate, samplesPerBlock);
+
+    // DEBUG: Log bus configuration
+    DBG("prepareToPlay called:");
+    DBG("  Sample rate: " + juce::String(sampleRate));
+    DBG("  Block size: " + juce::String(samplesPerBlock));
+    DBG("  Input buses: " + juce::String(getBusCount(true)));
+    DBG("  Output buses: " + juce::String(getBusCount(false)));
+    DBG("  Total input channels: " + juce::String(getTotalNumInputChannels()));
+    DBG("  Total output channels: " + juce::String(getTotalNumOutputChannels()));
+
+    if (auto* bus = getBus(true, 0))
+    {
+        DBG("  Input bus 0 enabled: " + juce::String(bus->isEnabled() ? "YES" : "NO"));
+        DBG("  Input bus 0 channels: " + juce::String(bus->getNumberOfChannels()));
+    }
 }
 
 void AuDemoProcessor::releaseResources()
@@ -110,10 +136,50 @@ void AuDemoProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiB
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear(i, 0, buffer.getNumSamples());
 
+    // If no channels, return
+    if (totalNumInputChannels == 0)
+        return;
+
+    // Track input level for debugging
+    float maxInput = 0.0f;
+    for (int ch = 0; ch < totalNumInputChannels; ++ch)
+    {
+        auto* data = buffer.getReadPointer(ch);
+        for (int i = 0; i < buffer.getNumSamples(); ++i)
+        {
+            float absVal = std::abs(data[i]);
+            if (absVal > maxInput) maxInput = absVal;
+        }
+    }
+    debugInputChannels.store(totalNumInputChannels);
+    debugInputLevel.store(maxInput);
+
     // Update compressor parameters
     compressor.setPeakReduction(peakReductionParam->load());
     compressor.setGain(gainParam->load());
-    compressor.setLimitMode(limitModeParam->load() > 0.5f);
+
+    // Handle compression modes: COMP, LIMIT, or BRITISH (both)
+    bool limitOn = limitModeParam->load() > 0.5f;
+    bool compOn = compModeParam->load() > 0.5f;
+
+    if (limitOn && compOn)
+    {
+        // British mode (1176 all-buttons-in style) - aggressive compression
+        compressor.setBritishMode(true);
+        compressor.setLimitMode(false);
+    }
+    else if (limitOn)
+    {
+        compressor.setBritishMode(false);
+        compressor.setLimitMode(true);
+    }
+    else
+    {
+        // Comp mode or neither (default to comp behavior)
+        compressor.setBritishMode(false);
+        compressor.setLimitMode(false);
+    }
+
     compressor.setMix(mixParam->load());
 
     // Process audio

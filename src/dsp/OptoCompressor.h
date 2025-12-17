@@ -27,6 +27,7 @@ public:
     void setPeakReduction(float value);    // 0-100
     void setGain(float dB);                // -10 to +40
     void setLimitMode(bool limit);         // true = limit, false = compress
+    void setBritishMode(bool british);     // 1176-style all-buttons-in
     void setMix(float percent);            // 0-100
 
     // Metering (thread-safe)
@@ -37,9 +38,9 @@ private:
     double sampleRate = 44100.0;
 
     // Opto-cell state variables (per channel for stereo linking)
-    float optoCellState = 0.0f;
-    float fastReleaseEnv = 0.0f;
-    float slowReleaseEnv = 0.0f;
+    float optoCellState = 1.0f;      // Start at unity gain
+    float fastReleaseEnv = 1.0f;     // Start at unity gain
+    float slowReleaseEnv = 1.0f;     // Start at unity gain
 
     // Adaptive timing state
     float attackCoeff = 0.0f;
@@ -51,6 +52,7 @@ private:
     float peakReduction = 0.0f;
     float makeupGain = 1.0f;
     bool limitMode = false;
+    bool britishMode = false;
     float mix = 1.0f;
 
     // Metering
@@ -72,5 +74,6 @@ private:
     static constexpr float MAX_SLOW_RELEASE_MS = 15000.0f;
     static constexpr float COMPRESS_RATIO = 3.0f;
     static constexpr float LIMIT_RATIO = 100.0f;
+    static constexpr float BRITISH_RATIO = 20.0f;  // 1176 all-buttons-in style
     static constexpr float KNEE_WIDTH_DB = 6.0f;
 };

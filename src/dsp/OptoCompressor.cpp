@@ -18,9 +18,9 @@ void OptoCompressor::prepare(double newSampleRate, int /*samplesPerBlock*/)
 
 void OptoCompressor::reset()
 {
-    optoCellState = 0.0f;
-    fastReleaseEnv = 0.0f;
-    slowReleaseEnv = 0.0f;
+    optoCellState = 1.0f;      // Unity gain (no compression)
+    fastReleaseEnv = 1.0f;     // Unity gain
+    slowReleaseEnv = 1.0f;     // Unity gain
     adaptiveReleaseTime = MIN_SLOW_RELEASE_MS;
     smoothedGR = 0.0f;
     smoothedOutput = 0.0f;
@@ -55,6 +55,11 @@ void OptoCompressor::setLimitMode(bool limit)
     limitMode = limit;
 }
 
+void OptoCompressor::setBritishMode(bool british)
+{
+    britishMode = british;
+}
+
 void OptoCompressor::setMix(float percent)
 {
     mix = juce::jlimit(0.0f, 100.0f, percent) / 100.0f;
@@ -70,7 +75,13 @@ float OptoCompressor::computeGain(float inputLevelDb)
     float threshold = 0.0f - (peakReduction * 0.4f); // -40dB at max
 
     // Ratio based on mode
-    float ratio = limitMode ? LIMIT_RATIO : COMPRESS_RATIO;
+    float ratio;
+    if (britishMode)
+        ratio = BRITISH_RATIO;  // Aggressive 1176-style
+    else if (limitMode)
+        ratio = LIMIT_RATIO;
+    else
+        ratio = COMPRESS_RATIO;
 
     // Soft knee computation
     float kneeStart = threshold - KNEE_WIDTH_DB / 2.0f;
@@ -181,6 +192,9 @@ void OptoCompressor::processBlock(juce::AudioBuffer<float>& buffer)
 
         // Process through optical cell (adds attack/release characteristics)
         float gain = processOpticalCell(targetGain);
+
+        // Safety: ensure gain is never zero or negative
+        gain = juce::jmax(gain, 0.0001f);
 
         // Track gain reduction for metering
         float grDb = juce::Decibels::gainToDecibels(gain);
